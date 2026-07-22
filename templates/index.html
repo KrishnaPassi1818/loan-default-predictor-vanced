@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RiskCompass — Mortgage Default Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="mobile-topbar">
+    <div class="brand"><span class="brand-mark">◈</span>RiskCompass</div>
+    <button type="button" class="hamburger" id="hamburger-btn" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <div class="sidebar" id="sidebar">
+    <div class="brand"><span class="brand-mark">◈</span>RiskCompass</div>
+    <div class="brand-sub">Mortgage default risk &amp; borrower intelligence</div>
+
+    <div class="theme-toggle-row">
+      <span class="theme-toggle-label">Dark mode</span>
+      <button type="button" class="theme-switch" id="theme-switch" aria-label="Toggle dark mode" aria-pressed="false"></button>
+    </div>
+
+    <nav>
+      <div class="nav-item active" data-page="dashboard"><span class="nav-icon">01</span>Dashboard</div>
+      <div class="nav-item" data-page="predict"><span class="nav-icon">02</span>Risk Prediction</div>
+      <div class="nav-item" data-page="segments"><span class="nav-icon">03</span>Borrower Segments</div>
+      <div class="nav-item" data-page="performance"><span class="nav-icon">04</span>Model Performance</div>
+      <div class="nav-item" data-page="about"><span class="nav-icon">05</span>About</div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="model-status">● Model ready</div>
+      <div class="status-meta">
+        Model: Gradient Boosting<br>
+        Tuned via GridSearchCV<br>
+        F1-optimal decision threshold
+      </div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- dashboard -->
+    <div class="page active" id="page-dashboard">
+
+      <div class="hero">
+        <span class="hero-eyebrow">Portfolio overview</span>
+        <h1>Mortgage Default Risk Assessment</h1>
+        <p>Statistical default probability and borrower segmentation, trained on a cleaned, class-balanced HMDA-style mortgage dataset.</p>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Best model</div>
+          <div class="stat-value">Gradient Boosting</div>
+          <div class="stat-trend">selected over 6 others</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Test ROC-AUC</div>
+          <div class="stat-value">0.889</div>
+          <div class="stat-trend">on held-out test set</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Decision threshold</div>
+          <div class="stat-value">0.353</div>
+          <div class="stat-trend">tuned for best F1, not 0.5</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Borrower segments</div>
+          <div class="stat-value">4</div>
+          <div class="stat-trend">via K-Means clustering</div>
+        </div>
+      </div>
+
+      <div class="section-title"><span class="section-num">◈</span>How this works</div>
+      <div class="step-grid">
+        <div class="step-card">
+          <div class="step-num">01</div>
+          <div class="step-title">Input</div>
+          <div class="step-desc">Enter a borrower's loan, property, and credit profile on the Risk Prediction page.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">02</div>
+          <div class="step-title">Preprocess</div>
+          <div class="step-desc">Fields are one-hot encoded and scaled exactly as they were during training.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">03</div>
+          <div class="step-title">Predict</div>
+          <div class="step-desc">The tuned Gradient Boosting classifier returns a default probability.</div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">04</div>
+          <div class="step-title">Segment</div>
+          <div class="step-desc">A separate K-Means model places the borrower into one of four risk archetypes for context.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- risk prediction -->
+    <div class="page" id="page-predict">
+      <div class="section-title"><span class="section-num">◈</span>Risk Prediction</div>
+      <p class="page-intro">All 25 fields below feed the exact preprocessing pipeline used in training. Leakage columns (rate of interest, interest rate spread, upfront charges — all only known after approval) are intentionally excluded from the model.</p>
+
+      <form id="predict-form">
+
+        <div class="field-section-label">Loan &amp; property</div>
+        <div class="grid">
+          <div class="field">
+            <label for="loan_amount">Loan amount (USD)</label>
+            <input type="number" id="loan_amount" name="loan_amount" value="286500" min="16000" step="500">
+          </div>
+          <div class="field">
+            <label for="term">Term (months)</label>
+            <input type="number" id="term" name="term" value="360" min="96" max="360" step="12">
+          </div>
+          <div class="field">
+            <label for="property_value">Property value (USD)</label>
+            <input type="number" id="property_value" name="property_value" value="398000" min="8000" step="1000">
+          </div>
+          <div class="field">
+            <label for="loan_limit">Loan limit</label>
+            <select id="loan_limit" name="loan_limit">
+              <option value="cf" selected>Conforming</option>
+              <option value="ncf">Non-conforming</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="loan_type">Loan type</label>
+            <select id="loan_type" name="loan_type">
+              <option value="type1" selected>Conventional</option>
+              <option value="type2">FHA-insured</option>
+              <option value="type3">VA-guaranteed</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="business_or_commercial">Loan usage</label>
+            <select id="business_or_commercial" name="business_or_commercial">
+              <option value="nob/c" selected>Personal</option>
+              <option value="b/c">Business / commercial</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="occupancy_type">Occupancy type</label>
+            <select id="occupancy_type" name="occupancy_type">
+              <option value="pr" selected>Primary residence</option>
+              <option value="sr">Secondary residence</option>
+              <option value="ir">Investment property</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="total_units">Total units</label>
+            <select id="total_units" name="total_units">
+              <option value="1U" selected>1 unit</option>
+              <option value="2U">2 units</option>
+              <option value="3U">3 units</option>
+              <option value="4U">4 units</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="Region">Region</label>
+            <select id="Region" name="Region">
+              <option value="North" selected>North</option>
+              <option value="North-East">North-East</option>
+              <option value="central">Central</option>
+              <option value="south">South</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-section-label">Applicant profile</div>
+        <div class="grid">
+          <div class="field">
+            <label for="Gender">Gender</label>
+            <select id="Gender" name="Gender">
+              <option value="Male" selected>Male</option>
+              <option value="Female">Female</option>
+              <option value="Joint">Joint</option>
+              <option value="Sex Not Available">Not disclosed</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="age">Age bracket</label>
+            <select id="age" name="age">
+              <option value="<25">Under 25</option>
+              <option value="25-34">25–34</option>
+              <option value="35-44" selected>35–44</option>
+              <option value="45-54">45–54</option>
+              <option value="55-64">55–64</option>
+              <option value="65-74">65–74</option>
+              <option value=">74">Over 74</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="income">Applicant income (USD / month)</label>
+            <input type="number" id="income" name="income" value="5460" min="0" step="10">
+          </div>
+          <div class="field">
+            <label for="approv_in_adv">Pre-approval status</label>
+            <select id="approv_in_adv" name="approv_in_adv">
+              <option value="nopre" selected>Not pre-approved</option>
+              <option value="pre">Pre-approved</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="submission_of_application">Application submission</label>
+            <select id="submission_of_application" name="submission_of_application">
+              <option value="to_inst" selected>Submitted to institution</option>
+              <option value="not_inst">Not submitted to institution</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-section-label">Credit profile</div>
+        <div class="grid">
+          <div class="field">
+            <label for="Credit_Score">Credit score</label>
+            <input type="number" id="Credit_Score" name="Credit_Score" value="700" min="500" max="900">
+          </div>
+          <div class="field">
+            <label for="Credit_Worthiness">Credit worthiness tier</label>
+            <select id="Credit_Worthiness" name="Credit_Worthiness">
+              <option value="l1" selected>Tier 1</option>
+              <option value="l2">Tier 2</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="credit_type">Credit bureau</label>
+            <select id="credit_type" name="credit_type">
+              <option value="CIB" selected>CIB</option>
+              <option value="CRIF">CRIF</option>
+              <option value="EQUI">Equifax</option>
+              <option value="EXP">Experian</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="co-applicant_credit_type">Co-applicant credit bureau</label>
+            <select id="co-applicant_credit_type" name="co-applicant_credit_type">
+              <option value="CIB" selected>CIB</option>
+              <option value="EXP">Experian</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="open_credit">Open credit line</label>
+            <select id="open_credit" name="open_credit">
+              <option value="nopc" selected>No</option>
+              <option value="opc">Yes</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-section-label">Loan structure &amp; debt</div>
+        <div class="grid">
+          <div class="field">
+            <label for="LTV">Loan-to-value ratio (%)</label>
+            <input type="number" id="LTV" name="LTV" value="76.16" min="0" max="120" step="0.01">
+          </div>
+          <div class="field">
+            <label for="dtir1">Debt-to-income ratio (%)</label>
+            <input type="number" id="dtir1" name="dtir1" value="40" min="0" max="70" step="0.1">
+          </div>
+          <div class="field">
+            <label for="loan_purpose">Loan purpose</label>
+            <select id="loan_purpose" name="loan_purpose">
+              <option value="p1" selected>Home purchase</option>
+              <option value="p2">Home improvement</option>
+              <option value="p3">Refinance</option>
+              <option value="p4">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="Neg_ammortization">Negative amortization</label>
+            <select id="Neg_ammortization" name="Neg_ammortization">
+              <option value="not_neg" selected>No</option>
+              <option value="neg_amm">Yes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="interest_only">Interest-only period</label>
+            <select id="interest_only" name="interest_only">
+              <option value="not_int" selected>No</option>
+              <option value="int_only">Yes</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="lump_sum_payment">Lump-sum payment</label>
+            <select id="lump_sum_payment" name="lump_sum_payment">
+              <option value="not_lpsm" selected>No</option>
+              <option value="lpsm">Yes</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" id="run-btn">Assess default risk</button>
+      </form>
+
+      <div id="error-box"></div>
+
+      <div id="result">
+        <div class="result-header">
+          <div>
+            <div class="verdict-label">Prediction</div>
+            <div class="verdict" id="verdict-text">—</div>
+          </div>
+          <div class="prob-number" id="prob-number">—</div>
+        </div>
+        <div class="reasons">
+          <div class="heading">Nearest borrower segment</div>
+          <div id="segment-callout" class="segment-callout">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- borrower segments (clustering) -->
+    <div class="page" id="page-segments">
+      <div class="section-title"><span class="section-num">◈</span>Borrower Segments</div>
+      <p class="page-intro">Unsupervised K-Means clustering (k=4) on 7 scaled numeric features (loan amount, property value, income, credit score, LTV, DTI, term), fit independently from the classifier above. These archetypes are descriptive, not predictive.</p>
+
+      <div class="segments-grid" id="segments-grid"></div>
+    </div>
+
+    <!-- model performance -->
+    <div class="page" id="page-performance">
+      <div class="section-title"><span class="section-num">◈</span>Model Performance Comparison</div>
+
+      <div class="chart-card">
+        <div class="bar-chart" id="perf-chart"></div>
+        <div class="params-note">
+          Winning model: <strong>Gradient Boosting</strong> (<code>learning_rate=0.1</code>,
+          <code>n_estimators=200</code>), selected via <code>GridSearchCV</code> against ROC-AUC
+          across 3-fold stratified cross-validation. Chart shows ROC-AUC on the held-out test
+          set — Gradient Boosting and Random Forest were close (0.889 vs 0.887), but Gradient
+          Boosting won on Recall too. The decision threshold was then re-tuned to 0.353
+          (instead of the default 0.5) to maximize F1 on the default class.
+        </div>
+      </div>
+    </div>
+
+    <!-- about page -->
+    <div class="page" id="page-about">
+      <div class="section-title"><span class="section-num">◈</span>About RiskCompass</div>
+
+      <div class="about-card">
+        <h3>Project overview</h3>
+        <p>RiskCompass estimates a mortgage borrower's probability of loan default and places
+        them within a set of borrower risk archetypes discovered through clustering. Built as a
+        summer training project covering the full ML lifecycle: data cleaning, EDA,
+        preprocessing, unsupervised segmentation, and supervised classification.</p>
+      </div>
+
+      <div class="about-card">
+        <h3>Technology stack</h3>
+        <table class="tech-table">
+          <tr><th>Layer</th><th>Technology</th></tr>
+          <tr><td>Frontend</td><td>Custom HTML / CSS / JavaScript</td></tr>
+          <tr><td>Backend</td><td>Flask (Python)</td></tr>
+          <tr><td>Classification</td><td>Gradient Boosting (GridSearchCV-tuned)</td></tr>
+          <tr><td>Segmentation</td><td>K-Means + PCA</td></tr>
+          <tr><td>Data processing</td><td>Pandas, NumPy, scikit-learn</td></tr>
+          <tr><td>Deployment</td><td>Render</td></tr>
+        </table>
+      </div>
+
+      <div class="about-card">
+        <h3>Dataset</h3>
+        <p><strong>Task:</strong> Binary classification (Default / Paid) on a cleaned,
+        class-balanced mortgage dataset, plus unsupervised borrower segmentation.<br>
+        <strong>Leakage guard:</strong> rate of interest, interest rate spread, and upfront
+        charges are dropped before training since they're only known after approval.</p>
+      </div>
+
+      <div class="about-card">
+        <h3>Disclaimer</h3>
+        <ul class="disclaimer-list">
+          <li>Built for educational and academic submission purposes</li>
+          <li>Predictions reflect historical patterns, not lending guarantees</li>
+          <li>Not a substitute for real underwriting judgment</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
