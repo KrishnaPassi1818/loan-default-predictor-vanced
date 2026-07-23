@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <div class="mobile-topbar">
@@ -52,14 +53,15 @@
       <div class="hero">
         <span class="hero-eyebrow">Portfolio overview</span>
         <h1>Mortgage Default Risk Assessment</h1>
-        <p>Statistical default probability and borrower segmentation, trained on a cleaned, class-balanced HMDA-style mortgage dataset.</p>
+        <p>Statistical default probability and borrower segmentation, trained on a cleaned, class-balanced HMDA-style mortgage dataset of <strong>148,670 records</strong> across 4 US regions.</p>
       </div>
 
+      <!-- KPI stat cards -->
       <div class="stat-grid">
         <div class="stat-card">
           <div class="stat-label">Best model</div>
           <div class="stat-value">Gradient Boosting</div>
-          <div class="stat-trend">selected over 6 others</div>
+          <div class="stat-trend">selected over 7 others</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Test ROC-AUC</div>
@@ -76,31 +78,131 @@
           <div class="stat-value">4</div>
           <div class="stat-trend">via K-Means clustering</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-label">F1 Score</div>
+          <div class="stat-value">0.819</div>
+          <div class="stat-trend">on default class</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Features used</div>
+          <div class="stat-value">60</div>
+          <div class="stat-trend">after one-hot encoding</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Test accuracy</div>
+          <div class="stat-value">81%</div>
+          <div class="stat-trend">balanced binary classes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Recall (default)</div>
+          <div class="stat-value">84.7%</div>
+          <div class="stat-trend">catches most true defaults</div>
+        </div>
       </div>
 
+      <!-- Pipeline flow -->
       <div class="section-title"><span class="section-num">◈</span>How this works</div>
-      <div class="step-grid">
-        <div class="step-card">
-          <div class="step-num">01</div>
-          <div class="step-title">Input</div>
-          <div class="step-desc">Enter a borrower's loan, property, and credit profile on the Risk Prediction page.</div>
+      <div class="pipeline-flow">
+        <div class="pipe-step">
+          <div class="pipe-icon">⌨</div>
+          <div class="pipe-num">01</div>
+          <div class="pipe-title">Input</div>
+          <div class="pipe-desc">25 borrower fields — loan amount, credit score, LTV, DTI, region, and more</div>
         </div>
-        <div class="step-card">
-          <div class="step-num">02</div>
-          <div class="step-title">Preprocess</div>
-          <div class="step-desc">Fields are one-hot encoded and scaled exactly as they were during training.</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">
+          <div class="pipe-icon">⚙</div>
+          <div class="pipe-num">02</div>
+          <div class="pipe-title">Preprocess</div>
+          <div class="pipe-desc">One-hot encode 18 categorical fields · StandardScale 7 numeric fields</div>
         </div>
-        <div class="step-card">
-          <div class="step-num">03</div>
-          <div class="step-title">Predict</div>
-          <div class="step-desc">The tuned Gradient Boosting classifier returns a default probability.</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">
+          <div class="pipe-icon">🌲</div>
+          <div class="pipe-num">03</div>
+          <div class="pipe-title">Classify</div>
+          <div class="pipe-desc">GBM classifier returns P(default) · threshold 0.353 decides outcome</div>
         </div>
-        <div class="step-card">
-          <div class="step-num">04</div>
-          <div class="step-title">Segment</div>
-          <div class="step-desc">A separate K-Means model places the borrower into one of four risk archetypes for context.</div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step">
+          <div class="pipe-icon">◎</div>
+          <div class="pipe-num">04</div>
+          <div class="pipe-title">Segment</div>
+          <div class="pipe-desc">Independent K-Means (k=4) assigns borrower to a risk archetype</div>
         </div>
       </div>
+
+      <!-- Best model highlight + radar chart -->
+      <div class="section-title" style="margin-top:36px"><span class="section-num">◈</span>Best Model — Gradient Boosting</div>
+      <div class="db-two-col">
+        <div class="db-model-card">
+          <div class="db-model-header">
+            <span class="db-model-badge">Winner</span>
+            <span class="db-model-name">Gradient Boosting Classifier</span>
+          </div>
+          <div class="db-model-params">
+            <div class="db-param"><span class="db-param-key">learning_rate</span><span class="db-param-val">0.1</span></div>
+            <div class="db-param"><span class="db-param-key">n_estimators</span><span class="db-param-val">200</span></div>
+            <div class="db-param"><span class="db-param-key">max_depth</span><span class="db-param-val">3</span></div>
+            <div class="db-param"><span class="db-param-key">selection method</span><span class="db-param-val">GridSearchCV (3-fold)</span></div>
+            <div class="db-param"><span class="db-param-key">optimised for</span><span class="db-param-val">ROC-AUC</span></div>
+            <div class="db-param"><span class="db-param-key">threshold method</span><span class="db-param-val">F1-optimal re-tuning</span></div>
+          </div>
+          <p class="db-model-note">Gradient Boosting builds an ensemble of shallow decision trees sequentially, each correcting the previous one's errors. It narrowly beat Random Forest (0.889 vs 0.887 AUC) but also led on Recall — crucial for catching real defaults.</p>
+          <div class="db-why-list">
+            <div class="db-why-item">✓ Handles mixed numeric + categorical data well</div>
+            <div class="db-why-item">✓ Robust to outliers via boosting</div>
+            <div class="db-why-item">✓ Best recall on minority (default) class</div>
+            <div class="db-why-item">✓ Threshold re-tuned to 0.353 for maximum F1</div>
+          </div>
+        </div>
+        <div class="db-chart-panel">
+          <div class="vis-label" style="margin-bottom:12px">Model Performance Radar</div>
+          <div style="position:relative;height:260px">
+            <canvas id="db-radar-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dataset info strip -->
+      <div class="section-title" style="margin-top:36px"><span class="section-num">◈</span>Dataset at a Glance</div>
+      <div class="db-dataset-strip">
+        <div class="db-ds-item">
+          <div class="db-ds-val">148,670</div>
+          <div class="db-ds-key">total records</div>
+        </div>
+        <div class="db-ds-div"></div>
+        <div class="db-ds-item">
+          <div class="db-ds-val">25</div>
+          <div class="db-ds-key">input features</div>
+        </div>
+        <div class="db-ds-div"></div>
+        <div class="db-ds-item">
+          <div class="db-ds-val">50/50</div>
+          <div class="db-ds-key">class balance</div>
+        </div>
+        <div class="db-ds-div"></div>
+        <div class="db-ds-item">
+          <div class="db-ds-val">4</div>
+          <div class="db-ds-key">US regions</div>
+        </div>
+        <div class="db-ds-div"></div>
+        <div class="db-ds-item">
+          <div class="db-ds-val">7</div>
+          <div class="db-ds-key">numeric features</div>
+        </div>
+        <div class="db-ds-div"></div>
+        <div class="db-ds-item">
+          <div class="db-ds-val">18</div>
+          <div class="db-ds-key">categorical features</div>
+        </div>
+        <div class="db-ds-div"></div>
+        <div class="db-ds-item">
+          <div class="db-ds-val">HMDA-style</div>
+          <div class="db-ds-key">data source</div>
+        </div>
+      </div>
+
     </div>
 
     <!-- risk prediction -->
@@ -302,44 +404,214 @@
 
       <div id="error-box"></div>
 
+      <!-- ===== RESULTS PANEL ===== -->
       <div id="result">
-        <div class="result-header">
-          <div>
+
+        <!-- Row 1: Verdict + Gauge -->
+        <div class="result-top-row">
+          <div class="result-verdict-panel">
             <div class="verdict-label">Prediction</div>
             <div class="verdict" id="verdict-text">—</div>
+            <div class="verdict-sub" id="verdict-sub">—</div>
+            <div class="threshold-pill" id="threshold-pill">—</div>
           </div>
-          <div class="prob-number" id="prob-number">—</div>
+          <div class="gauge-panel">
+            <div class="gauge-label">Default Probability</div>
+            <div class="gauge-wrap">
+              <canvas id="gauge-chart" width="220" height="130"></canvas>
+              <div class="gauge-center-text" id="gauge-center-text">—</div>
+            </div>
+          </div>
         </div>
-        <div class="reasons">
-          <div class="heading">Nearest borrower segment</div>
-          <div id="segment-callout" class="segment-callout">—</div>
+
+        <!-- Row 2: Confidence bar + Segment -->
+        <div class="result-mid-row">
+          <div class="confidence-panel">
+            <div class="vis-label">Model Confidence</div>
+            <div class="confidence-bar-wrap">
+              <div class="confidence-track">
+                <div class="confidence-threshold-line" id="conf-threshold-line"></div>
+                <div class="confidence-fill" id="confidence-fill"></div>
+              </div>
+              <div class="confidence-legend">
+                <span>0%</span>
+                <span id="conf-threshold-label">Threshold</span>
+                <span>100%</span>
+              </div>
+            </div>
+            <div class="confidence-note" id="confidence-note">—</div>
+          </div>
+          <div class="segment-panel">
+            <div class="vis-label">Nearest Borrower Segment</div>
+            <div id="segment-callout" class="segment-callout">—</div>
+          </div>
         </div>
+
+        <!-- Row 3: Risk factor radar + Model accuracy -->
+        <div class="result-charts-row">
+          <div class="chart-box">
+            <div class="vis-label">Your Risk Factors vs Safe Benchmarks</div>
+            <div class="chart-box-inner">
+              <canvas id="risk-factors-chart"></canvas>
+            </div>
+          </div>
+          <div class="chart-box">
+            <div class="vis-label">Model Accuracy (Held-out Test Set)</div>
+            <div class="model-metrics-grid" id="model-metrics-grid">
+              <!-- filled by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 4: Segment default rate comparison + Feature importances -->
+        <div class="result-charts-row">
+          <div class="chart-box">
+            <div class="vis-label">Segment Default Rate Comparison</div>
+            <div class="chart-box-inner">
+              <canvas id="segment-compare-chart"></canvas>
+            </div>
+          </div>
+          <div class="chart-box">
+            <div class="vis-label">Top 10 Model Feature Importances</div>
+            <div class="chart-box-inner chart-box-tall">
+              <canvas id="feature-importance-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
     <!-- borrower segments (clustering) -->
     <div class="page" id="page-segments">
       <div class="section-title"><span class="section-num">◈</span>Borrower Segments</div>
-      <p class="page-intro">Unsupervised K-Means clustering (k=4) on 7 scaled numeric features (loan amount, property value, income, credit score, LTV, DTI, term), fit independently from the classifier above. These archetypes are descriptive, not predictive.</p>
+      <p class="page-intro">Unsupervised K-Means (k=4) clustering on 7 scaled numeric features — loan amount, property value, income, credit score, LTV, DTI, and term — fit independently from the classifier. Segments are <em>descriptive</em>, not predictive.</p>
 
+      <!-- Summary mini-charts row -->
+      <div class="seg-overview-row">
+        <div class="seg-chart-card">
+          <div class="vis-label">Segment Size (% of borrowers)</div>
+          <div style="position:relative;height:180px">
+            <canvas id="seg-donut-chart"></canvas>
+          </div>
+        </div>
+        <div class="seg-chart-card">
+          <div class="vis-label">Default Rate by Segment (%)</div>
+          <div style="position:relative;height:180px">
+            <canvas id="seg-default-bar"></canvas>
+          </div>
+        </div>
+        <div class="seg-chart-card">
+          <div class="vis-label">Avg Credit Score by Segment</div>
+          <div style="position:relative;height:180px">
+            <canvas id="seg-credit-bar"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Segment detail cards -->
+      <div class="section-title" style="margin-top:28px"><span class="section-num">◈</span>Segment Profiles</div>
       <div class="segments-grid" id="segments-grid"></div>
+
+      <!-- Clustering method note -->
+      <div class="seg-method-note">
+        <span class="seg-method-label">Clustering pipeline</span>
+        K-Means (k=4) · separate StandardScaler on 7 numeric features · PCA for 2D projection · silhouette-optimised k selection · fit on full cleaned dataset before train/test split
+      </div>
     </div>
 
     <!-- model performance -->
     <div class="page" id="page-performance">
       <div class="section-title"><span class="section-num">◈</span>Model Performance Comparison</div>
+      <p class="page-intro">8 models trained on the same preprocessing pipeline, evaluated on a held-out test set. GridSearchCV with 3-fold stratified cross-validation selected Gradient Boosting as the winner on ROC-AUC.</p>
 
+      <!-- ROC-AUC bar chart (existing, kept) -->
+      <div class="perf-section-label">ROC-AUC on Held-out Test Set</div>
       <div class="chart-card">
         <div class="bar-chart" id="perf-chart"></div>
-        <div class="params-note">
-          Winning model: <strong>Gradient Boosting</strong> (<code>learning_rate=0.1</code>,
-          <code>n_estimators=200</code>), selected via <code>GridSearchCV</code> against ROC-AUC
-          across 3-fold stratified cross-validation. Chart shows ROC-AUC on the held-out test
-          set — Gradient Boosting and Random Forest were close (0.889 vs 0.887), but Gradient
-          Boosting won on Recall too. The decision threshold was then re-tuned to 0.353
-          (instead of the default 0.5) to maximize F1 on the default class.
+      </div>
+
+      <!-- Multi-metric grouped chart -->
+      <div class="perf-section-label" style="margin-top:28px">Multi-Metric Breakdown — All Models</div>
+      <div class="chart-card">
+        <div style="position:relative;height:320px">
+          <canvas id="perf-multi-chart"></canvas>
+        </div>
+        <div class="params-note" style="margin-top:14px">
+          Bars show Accuracy, Precision, Recall, and F1 on the default class for each model. Gradient Boosting leads on Recall (84.7%) and F1 (81.9%), which matter most for catching true defaults.
         </div>
       </div>
+
+      <!-- GBM spotlight card -->
+      <div class="perf-section-label" style="margin-top:28px">Gradient Boosting — Detailed Metrics</div>
+      <div class="gbm-spotlight">
+        <div class="gbm-metrics-row">
+          <div class="gbm-metric">
+            <div class="gbm-metric-val">0.889</div>
+            <div class="gbm-metric-label">ROC-AUC</div>
+            <div class="gbm-metric-bar"><div class="gbm-metric-fill" style="width:88.9%"></div></div>
+          </div>
+          <div class="gbm-metric">
+            <div class="gbm-metric-val">81.0%</div>
+            <div class="gbm-metric-label">Accuracy</div>
+            <div class="gbm-metric-bar"><div class="gbm-metric-fill" style="width:81%"></div></div>
+          </div>
+          <div class="gbm-metric">
+            <div class="gbm-metric-val">79.2%</div>
+            <div class="gbm-metric-label">Precision</div>
+            <div class="gbm-metric-bar"><div class="gbm-metric-fill" style="width:79.2%"></div></div>
+          </div>
+          <div class="gbm-metric">
+            <div class="gbm-metric-val">84.7%</div>
+            <div class="gbm-metric-label">Recall</div>
+            <div class="gbm-metric-bar"><div class="gbm-metric-fill" style="width:84.7%"></div></div>
+          </div>
+          <div class="gbm-metric">
+            <div class="gbm-metric-val">81.9%</div>
+            <div class="gbm-metric-label">F1 Score</div>
+            <div class="gbm-metric-bar"><div class="gbm-metric-fill" style="width:81.9%"></div></div>
+          </div>
+          <div class="gbm-metric">
+            <div class="gbm-metric-val">0.353</div>
+            <div class="gbm-metric-label">Threshold</div>
+            <div class="gbm-metric-bar"><div class="gbm-metric-fill gbm-fill-mid" style="width:35.3%"></div></div>
+          </div>
+        </div>
+        <div class="gbm-params-row">
+          <div class="gbm-params-label">Winning hyperparameters</div>
+          <div class="gbm-params-chips">
+            <span class="gbm-chip">learning_rate = 0.1</span>
+            <span class="gbm-chip">n_estimators = 200</span>
+            <span class="gbm-chip">max_depth = 3</span>
+            <span class="gbm-chip">subsample = 1.0</span>
+            <span class="gbm-chip">loss = log_loss</span>
+          </div>
+        </div>
+        <p class="gbm-explain">
+          Gradient Boosting minimises a differentiable loss function (log-loss for classification) by fitting shallow decision trees sequentially in the gradient direction of the residuals. The low <code>max_depth=3</code> and conservative <code>learning_rate=0.1</code> prevent overfitting. The decision threshold was shifted from the default 0.5 to <strong>0.353</strong> by maximising F1 over the validation set — lowering it increases recall at the cost of slightly reduced precision, which is the right tradeoff for loan default detection.
+        </p>
+      </div>
+
+      <!-- Threshold comparison note -->
+      <div class="chart-card" style="margin-top:20px">
+        <div class="perf-section-label" style="margin:0 0 14px">Why threshold 0.353 instead of 0.5?</div>
+        <div class="threshold-explain-grid">
+          <div class="te-col">
+            <div class="te-head">At threshold 0.5 (default)</div>
+            <div class="te-row"><span>Higher precision</span><span class="te-badge te-good">+</span></div>
+            <div class="te-row"><span>Lower recall — misses defaults</span><span class="te-badge te-bad">−</span></div>
+            <div class="te-row"><span>Lower F1 on default class</span><span class="te-badge te-bad">−</span></div>
+          </div>
+          <div class="te-div"></div>
+          <div class="te-col">
+            <div class="te-head">At threshold 0.353 (tuned)</div>
+            <div class="te-row"><span>Recall 84.7% — catches more defaults</span><span class="te-badge te-good">+</span></div>
+            <div class="te-row"><span>F1 maximised at 81.9%</span><span class="te-badge te-good">+</span></div>
+            <div class="te-row"><span>Slight precision trade-off</span><span class="te-badge te-mid">~</span></div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- about page -->

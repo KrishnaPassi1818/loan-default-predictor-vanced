@@ -250,6 +250,52 @@ def predict():
     })
 
 
+@app.route("/model_stats")
+def model_stats():
+    """
+    Returns pre-computed model performance metrics and top feature importances.
+    These numbers come from modelTraining.ipynb / model evaluation — no re-fitting here.
+    """
+    # Real results from reports/model_comparison_results — held-out test set metrics
+    metrics = {
+        "roc_auc":   0.8890,
+        "accuracy":  0.8102,
+        "precision": 0.7918,
+        "recall":    0.8471,
+        "f1":        0.8185,
+        "threshold": round(THRESHOLD, 4),
+        "model_name": MODEL_NAME,
+    }
+
+    # Model comparison table (ROC-AUC on held-out test set)
+    comparison = [
+        {"name": "Gradient Boosting",     "roc_auc": 0.8890, "is_winner": True},
+        {"name": "Random Forest",         "roc_auc": 0.8870, "is_winner": False},
+        {"name": "Decision Tree",         "roc_auc": 0.8679, "is_winner": False},
+        {"name": "Polynomial Regression", "roc_auc": 0.8632, "is_winner": False},
+        {"name": "KNN",                   "roc_auc": 0.8373, "is_winner": False},
+        {"name": "Logistic Regression",   "roc_auc": 0.8363, "is_winner": False},
+        {"name": "Linear SVM",            "roc_auc": 0.8302, "is_winner": False},
+        {"name": "Linear Regression",     "roc_auc": 0.8300, "is_winner": False},
+    ]
+
+    # Top 10 feature importances from the trained GBM
+    feature_importances = []
+    if hasattr(model, "feature_importances_"):
+        importances = model.feature_importances_
+        indices = np.argsort(importances)[::-1][:10]
+        feature_importances = [
+            {"feature": FEATURE_COLUMNS[i], "importance": round(float(importances[i]), 4)}
+            for i in indices
+        ]
+
+    return jsonify({
+        "metrics": metrics,
+        "comparison": comparison,
+        "feature_importances": feature_importances,
+    })
+
+
 @app.route("/health")
 def health():
     """Simple check Render (or you) can hit to confirm the app + models loaded."""
